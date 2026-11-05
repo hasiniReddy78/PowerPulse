@@ -73,3 +73,27 @@ def test_assessment_insert_and_scoped_retrieval(tmp_path):
     assert hidden["average_predicted_soh"] == 68.5
     assert hidden["assessment_count"] == 1
     assert len(hidden["alerts"]) == 1
+
+
+def test_env_config_defaults_and_parsing(monkeypatch):
+    from database.db import get_active_db_type, get_db_config
+
+    monkeypatch.setenv("DB_TYPE", "mongodb")
+    monkeypatch.setenv("MONGODB_URI", "")
+    cfg = get_db_config()
+    assert cfg["db_type"] == "mongodb"
+    assert cfg["mongo_db_name"] == "powerpulse_db"
+    assert cfg["users_collection"] == "users"
+    assert cfg["batteries_collection"] == "battery_records"
+    assert cfg["assessments_collection"] == "assessments"
+
+    # With empty URI, active backend safely falls back to sqlite
+    assert get_active_db_type() == "sqlite"
+
+
+def test_explicit_path_always_routes_to_sqlite(tmp_path):
+    from database.db import get_active_db_type
+
+    test_db = tmp_path / "custom.db"
+    assert get_active_db_type(test_db) == "sqlite"
+

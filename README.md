@@ -145,24 +145,54 @@ From the repository root (`minorProject`):
 pip install -r requirements.txt
 ```
 
-### 2. Run the Streamlit Application
+### 2. Database Configuration (SQLite or MongoDB)
+
+PowerPulse supports dual database storage engines configured via environment variables in `.env`:
+- **SQLite (Default / Fallback)**: Zero-configuration local database (`database/powerpulse.db`).
+- **MongoDB**: Cloud (MongoDB Atlas) or local MongoDB instance for scalable multi-user assessment storage.
+
+#### Switching to MongoDB:
+1. Copy `.env.example` to `.env` (or edit the existing `.env`):
+   ```bash
+   cp .env.example .env
+   ```
+2. Open `.env` and configure your settings:
+   ```env
+   # Database Engine Selection ('mongodb' or 'sqlite')
+   DB_TYPE=mongodb
+
+   # MongoDB Connection URI (paste your credentials / cluster URI)
+   # Example: mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
+   MONGODB_URI=your_mongodb_connection_uri_here
+
+   # Database and collection names
+   MONGODB_DB_NAME=powerpulse_db
+   MONGODB_USERS_COLLECTION=users
+   MONGODB_BATTERIES_COLLECTION=battery_records
+   MONGODB_ASSESSMENTS_COLLECTION=assessments
+   MONGODB_TIMEOUT_MS=5000
+   ```
+3. **Safety Fallback**: If `MONGODB_URI` is left blank, `pymongo` is missing, or the cluster is temporarily unreachable, PowerPulse automatically falls back to local SQLite without interrupting the application.
+
+### 3. Run the Streamlit Application
 ```bash
 cd PowerPulse_AI
 streamlit run app.py
 ```
 Open `http://localhost:8501` in your browser. Pre-trained models and SHAP explainers load instantly without retraining.
 
-### 3. Run the Automated Tests
+### 4. Run the Automated Tests
 ```bash
 cd PowerPulse_AI
 pytest
 ```
-All 21 unit, integration, and explainability tests will execute.
+All unit, integration, and explainability tests will execute.
 
-### 4. Optional: Retraining
+### 5. Optional: Retraining
 ```bash
 cd PowerPulse_AI
 python -m ml.train_models
 ```
 Performs battery-wise splitting, cross-validation, holdout evaluation, and serializes fresh model artifacts into `models/`.
+
 

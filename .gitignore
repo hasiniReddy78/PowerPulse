@@ -46,6 +46,16 @@ htmlcov/
 PowerPulse_AI/.streamlit/secrets.toml
 PowerPulse_AI/.streamlit/cache/
 
+# Environment files & secrets
+.env
+.env.*
+.env.local
+!.env.example
+PowerPulse_AI/.env
+PowerPulse_AI/.env.*
+PowerPulse_AI/.env.local
+!PowerPulse_AI/.env.example
+
 # Local databases (preserve schemas, ignore runtime databases)
 *.db
 *.db-*
