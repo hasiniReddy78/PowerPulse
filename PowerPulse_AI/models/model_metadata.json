@@ -1,0 +1,651 @@
+{
+  "model_version": "1.0.0",
+  "project": "PowerPulse",
+  "battery_chemistry": "lithium_ion",
+  "dataset_file": "powerpulse_clean.csv",
+  "dataset_sha256": "0b12164078eb5e048fc1ffb2b8aef7bc17c75131e7c4b9dbd9235c5d77554b8b",
+  "dataset_rows": 2485,
+  "dataset_batteries": 32,
+  "reference_capacity_ah": 2.0,
+  "reference_capacity_note": "SoH labels in the cleaned file are min(100, capacity_ah / 2.0 * 100). The 2.0 Ah value is a preprocessing assumption.",
+  "random_seed": 42,
+  "trained_at_utc": "2026-11-04T16:49:36+00:00",
+  "split": {
+    "strategy": "battery-wise holdout of 8 of 32 batteries, stratified by temperature profile. B0042, B0043 and B0044 are one profile because each contains both 22 \u00b0C and 4 \u00b0C discharges.",
+    "train_batteries": [
+      "B0006",
+      "B0007",
+      "B0018",
+      "B0025",
+      "B0026",
+      "B0027",
+      "B0028",
+      "B0029",
+      "B0031",
+      "B0032",
+      "B0034",
+      "B0036",
+      "B0039",
+      "B0040",
+      "B0042",
+      "B0043",
+      "B0045",
+      "B0046",
+      "B0047",
+      "B0048",
+      "B0051",
+      "B0053",
+      "B0054",
+      "B0056"
+    ],
+    "test_batteries": [
+      "B0005",
+      "B0030",
+      "B0033",
+      "B0038",
+      "B0041",
+      "B0044",
+      "B0049",
+      "B0055"
+    ],
+    "ambient": [
+      {
+        "ambient_temperature": 4.0,
+        "train_batteries": [
+          "B0042",
+          "B0043",
+          "B0045",
+          "B0046",
+          "B0047",
+          "B0048",
+          "B0051",
+          "B0053",
+          "B0054",
+          "B0056"
+        ],
+        "test_batteries": [
+          "B0041",
+          "B0044",
+          "B0049",
+          "B0055"
+        ],
+        "train_records": 608,
+        "test_records": 175
+      },
+      {
+        "ambient_temperature": 22.0,
+        "train_batteries": [
+          "B0042",
+          "B0043"
+        ],
+        "test_batteries": [
+          "B0044"
+        ],
+        "train_records": 80,
+        "test_records": 40
+      },
+      {
+        "ambient_temperature": 24.0,
+        "train_batteries": [
+          "B0006",
+          "B0007",
+          "B0018",
+          "B0025",
+          "B0026",
+          "B0027",
+          "B0028",
+          "B0034",
+          "B0036"
+        ],
+        "test_batteries": [
+          "B0005",
+          "B0033"
+        ],
+        "train_records": 970,
+        "test_records": 349
+      },
+      {
+        "ambient_temperature": 43.0,
+        "train_batteries": [
+          "B0029",
+          "B0031",
+          "B0032"
+        ],
+        "test_batteries": [
+          "B0030"
+        ],
+        "train_records": 120,
+        "test_records": 40
+      },
+      {
+        "ambient_temperature": 44.0,
+        "train_batteries": [
+          "B0039",
+          "B0040"
+        ],
+        "test_batteries": [
+          "B0038"
+        ],
+        "train_records": 68,
+        "test_records": 35
+      }
+    ]
+  },
+  "raw_input_columns": [
+    "ambient_temperature",
+    "temperature_mean",
+    "temperature_max",
+    "voltage_mean",
+    "voltage_min",
+    "voltage_max",
+    "voltage_std",
+    "current_mean",
+    "current_std",
+    "duration_seconds"
+  ],
+  "feature_columns": [
+    "ambient_temperature",
+    "temperature_mean",
+    "temperature_max",
+    "voltage_mean",
+    "voltage_min",
+    "voltage_max",
+    "voltage_std",
+    "current_mean",
+    "current_std",
+    "duration_seconds",
+    "voltage_range",
+    "temperature_rise",
+    "temperature_peak_rise"
+  ],
+  "engineered_features": [
+    "voltage_range",
+    "temperature_rise",
+    "temperature_peak_rise"
+  ],
+  "discharge_cycle_included": false,
+  "discharge_cycle_rationale": "Discharge cycle was not included. Grouped cross-validation did not show an MAE improvement of at least 0.5 SoH points, and cycle numbers are not aligned across the NASA experiments (several batteries do not start at cycle 1). Engineered features were kept because they did not make grouped MAE meaningfully worse.",
+  "leakage_columns_excluded": [
+    "capacity_ah",
+    "soh_percent",
+    "condition"
+  ],
+  "raw_feature_ranges_training": {
+    "ambient_temperature": {
+      "min": 4.0,
+      "max": 44.0
+    },
+    "temperature_mean": {
+      "min": 7.813594861574464,
+      "max": 54.78310499049381
+    },
+    "temperature_max": {
+      "min": 10.325538579218517,
+      "max": 62.748041100403526
+    },
+    "voltage_mean": {
+      "min": 3.014547209987882,
+      "max": 3.6846266213857497
+    },
+    "voltage_min": {
+      "min": 1.6704419000715314,
+      "max": 2.6999262584848243
+    },
+    "voltage_max": {
+      "min": 3.8387228819147694,
+      "max": 4.290021871695731
+    },
+    "voltage_std": {
+      "min": 0.204532729314212,
+      "max": 0.487351804888797
+    },
+    "current_mean": {
+      "min": -3.976472905870513,
+      "max": -0.5721341781091527
+    },
+    "current_std": {
+      "min": 0.0683778494640185,
+      "max": 2.0111237732910605
+    },
+    "duration_seconds": {
+      "min": 1485.047,
+      "max": 6574.671
+    }
+  },
+  "hyperparameters_fixed_before_test": {
+    "regression:linear_regression": {
+      "memory": null,
+      "steps": "[('scale', StandardScaler()), ('model', LinearRegression())]",
+      "transform_input": null,
+      "verbose": false,
+      "scale": "StandardScaler()",
+      "model": "LinearRegression()",
+      "scale__copy": true,
+      "scale__with_mean": true,
+      "scale__with_std": true,
+      "model__copy_X": true,
+      "model__fit_intercept": true,
+      "model__n_jobs": null,
+      "model__positive": false,
+      "model__tol": 1e-06
+    },
+    "regression:random_forest": {
+      "bootstrap": true,
+      "ccp_alpha": 0.0,
+      "criterion": "squared_error",
+      "max_depth": null,
+      "max_features": 1.0,
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "regression:extra_trees": {
+      "bootstrap": false,
+      "ccp_alpha": 0.0,
+      "criterion": "squared_error",
+      "max_depth": null,
+      "max_features": 1.0,
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "regression:gradient_boosting": {
+      "alpha": 0.9,
+      "ccp_alpha": 0.0,
+      "criterion": "friedman_mse",
+      "init": null,
+      "learning_rate": 0.1,
+      "loss": "squared_error",
+      "max_depth": 3,
+      "max_features": null,
+      "max_leaf_nodes": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "n_estimators": 200,
+      "n_iter_no_change": null,
+      "random_state": 42,
+      "subsample": 1.0,
+      "tol": 0.0001,
+      "validation_fraction": 0.1,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "regression:xgboost": {
+      "objective": "reg:squarederror",
+      "base_score": null,
+      "booster": null,
+      "callbacks": null,
+      "colsample_bylevel": null,
+      "colsample_bynode": null,
+      "colsample_bytree": 0.9,
+      "device": null,
+      "early_stopping_rounds": null,
+      "enable_categorical": false,
+      "eval_metric": null,
+      "feature_types": null,
+      "feature_weights": null,
+      "gamma": null,
+      "grow_policy": null,
+      "importance_type": null,
+      "interaction_constraints": null,
+      "learning_rate": 0.05,
+      "max_bin": null,
+      "max_cat_threshold": null,
+      "max_cat_to_onehot": null,
+      "max_delta_step": null,
+      "max_depth": 4,
+      "max_leaves": null,
+      "min_child_weight": null,
+      "missing": NaN,
+      "monotone_constraints": null,
+      "multi_strategy": null,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "num_parallel_tree": null,
+      "random_state": 42,
+      "reg_alpha": null,
+      "reg_lambda": 1.0,
+      "sampling_method": null,
+      "scale_pos_weight": null,
+      "subsample": 0.9,
+      "tree_method": "hist",
+      "validate_parameters": null,
+      "verbosity": 0
+    },
+    "classification:logistic_regression": {
+      "memory": null,
+      "steps": "[('scale', StandardScaler()), ('model', LogisticRegression(class_weight='balanced', max_iter=2000, random_state=42))]",
+      "transform_input": null,
+      "verbose": false,
+      "scale": "StandardScaler()",
+      "model": "LogisticRegression(class_weight='balanced', max_iter=2000, random_state=42)",
+      "scale__copy": true,
+      "scale__with_mean": true,
+      "scale__with_std": true,
+      "model__C": 1.0,
+      "model__class_weight": "balanced",
+      "model__dual": false,
+      "model__fit_intercept": true,
+      "model__intercept_scaling": 1,
+      "model__l1_ratio": 0.0,
+      "model__max_iter": 2000,
+      "model__n_jobs": null,
+      "model__penalty": "deprecated",
+      "model__random_state": 42,
+      "model__solver": "lbfgs",
+      "model__tol": 0.0001,
+      "model__verbose": 0,
+      "model__warm_start": false
+    },
+    "classification:random_forest": {
+      "bootstrap": true,
+      "ccp_alpha": 0.0,
+      "class_weight": "balanced_subsample",
+      "criterion": "gini",
+      "max_depth": null,
+      "max_features": "sqrt",
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "classification:extra_trees": {
+      "bootstrap": false,
+      "ccp_alpha": 0.0,
+      "class_weight": "balanced_subsample",
+      "criterion": "gini",
+      "max_depth": null,
+      "max_features": "sqrt",
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "classification:gradient_boosting": {
+      "ccp_alpha": 0.0,
+      "criterion": "friedman_mse",
+      "init": null,
+      "learning_rate": 0.1,
+      "loss": "log_loss",
+      "max_depth": 3,
+      "max_features": null,
+      "max_leaf_nodes": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 2,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "n_estimators": 200,
+      "n_iter_no_change": null,
+      "random_state": 42,
+      "subsample": 1.0,
+      "tol": 0.0001,
+      "validation_fraction": 0.1,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "classification:xgboost": {
+      "colsample_bytree": 0.9,
+      "learning_rate": 0.05,
+      "max_depth": 4,
+      "n_estimators": 200,
+      "n_jobs": 1,
+      "random_state": 42,
+      "reg_lambda": 1.0,
+      "subsample": 0.9,
+      "tree_method": "hist",
+      "verbosity": 0
+    }
+  },
+  "regression": {
+    "algorithm": "random_forest",
+    "selection_metric": "lowest GroupKFold MAE on training batteries",
+    "test_metrics": {
+      "mae": 2.7293647783294017,
+      "rmse": 4.884059462655907,
+      "r2": 0.869239679348467,
+      "n": 639
+    },
+    "feature_importance": {
+      "kind": "impurity_importance",
+      "values": [
+        {
+          "feature": "ambient_temperature",
+          "value": 0.2487314042997631
+        },
+        {
+          "feature": "temperature_mean",
+          "value": 0.23905390514079594
+        },
+        {
+          "feature": "current_mean",
+          "value": 0.14232852465830872
+        },
+        {
+          "feature": "temperature_max",
+          "value": 0.13931508692630254
+        },
+        {
+          "feature": "duration_seconds",
+          "value": 0.13443081454323125
+        },
+        {
+          "feature": "temperature_peak_rise",
+          "value": 0.04670553053700391
+        },
+        {
+          "feature": "voltage_std",
+          "value": 0.028893633675844296
+        },
+        {
+          "feature": "current_std",
+          "value": 0.00930975314855119
+        },
+        {
+          "feature": "voltage_range",
+          "value": 0.0032462670419904196
+        },
+        {
+          "feature": "voltage_mean",
+          "value": 0.002789376609722186
+        },
+        {
+          "feature": "voltage_min",
+          "value": 0.002641462678659311
+        },
+        {
+          "feature": "voltage_max",
+          "value": 0.0014815759592595778
+        },
+        {
+          "feature": "temperature_rise",
+          "value": 0.0010726647805676653
+        }
+      ]
+    }
+  },
+  "classification": {
+    "algorithm": "xgboost",
+    "selection_metric": "highest GroupKFold macro F1 on training batteries",
+    "test_metrics": {
+      "accuracy": 0.917057902973396,
+      "precision_macro": 0.9061483749909153,
+      "recall_macro": 0.9276234247932361,
+      "f1_macro": 0.9155960245329954,
+      "f1_weighted": 0.9170582812979374,
+      "confusion_matrix": {
+        "labels": [
+          "Good",
+          "Fair",
+          "Poor"
+        ],
+        "values": [
+          [
+            103,
+            3,
+            0
+          ],
+          [
+            17,
+            229,
+            14
+          ],
+          [
+            0,
+            19,
+            254
+          ]
+        ]
+      },
+      "classification_report": {
+        "Good": {
+          "precision": 0.8583333333333333,
+          "recall": 0.9716981132075472,
+          "f1-score": 0.911504424778761,
+          "support": 106.0
+        },
+        "Fair": {
+          "precision": 0.9123505976095617,
+          "recall": 0.8807692307692307,
+          "f1-score": 0.8962818003913894,
+          "support": 260.0
+        },
+        "Poor": {
+          "precision": 0.9477611940298507,
+          "recall": 0.9304029304029304,
+          "f1-score": 0.9390018484288355,
+          "support": 273.0
+        },
+        "accuracy": 0.917057902973396,
+        "macro avg": {
+          "precision": 0.9061483749909153,
+          "recall": 0.9276234247932361,
+          "f1-score": 0.9155960245329954,
+          "support": 639.0
+        },
+        "weighted avg": {
+          "precision": 0.9185184580312498,
+          "recall": 0.917057902973396,
+          "f1-score": 0.9170582812979374,
+          "support": 639.0
+        }
+      },
+      "n": 639
+    },
+    "feature_importance": {
+      "kind": "impurity_importance",
+      "values": [
+        {
+          "feature": "ambient_temperature",
+          "value": 0.3717138469219208
+        },
+        {
+          "feature": "voltage_mean",
+          "value": 0.14019538462162018
+        },
+        {
+          "feature": "duration_seconds",
+          "value": 0.0881427675485611
+        },
+        {
+          "feature": "voltage_std",
+          "value": 0.07444722205400467
+        },
+        {
+          "feature": "current_mean",
+          "value": 0.0717143639922142
+        },
+        {
+          "feature": "temperature_mean",
+          "value": 0.06106319651007652
+        },
+        {
+          "feature": "temperature_max",
+          "value": 0.05870744585990906
+        },
+        {
+          "feature": "current_std",
+          "value": 0.03757504001259804
+        },
+        {
+          "feature": "voltage_range",
+          "value": 0.02456354722380638
+        },
+        {
+          "feature": "temperature_rise",
+          "value": 0.023086030036211014
+        },
+        {
+          "feature": "voltage_min",
+          "value": 0.022085553035140038
+        },
+        {
+          "feature": "temperature_peak_rise",
+          "value": 0.01828397996723652
+        },
+        {
+          "feature": "voltage_max",
+          "value": 0.008421649225056171
+        }
+      ]
+    }
+  },
+  "class_labels": [
+    "Good",
+    "Fair",
+    "Poor"
+  ],
+  "condition_thresholds": {
+    "poor_at_or_below": 70.0,
+    "fair_at_or_below": 85.0,
+    "good_above": 85.0
+  },
+  "limitations": [
+    "The model estimates SoH for one lithium-ion cell discharge summarised the way the NASA laboratory file was summarised. It does not assess a full electric-vehicle pack.",
+    "Held-out scores use a small number of batteries. A low or negative R\u00b2 means the model does not generalise reliably to unseen cells.",
+    "Ambient temperature and discharge current are confounded with the original experiments. They are not causal maintenance advice.",
+    "The 2.0 Ah reference is the assumption already used to label this file. Seven early B0006 capacities exceed 2.0 Ah and their SoH labels are capped at 100%.",
+    "Class probabilities are not calibrated and are not shown as confidence.",
+    "Laboratory NASA results do not validate real-world vehicle performance.",
+    "Assessment is calibrated specifically for lithium-ion battery cells under laboratory discharge test conditions."
+  ]
+}
