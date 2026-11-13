@@ -15,3 +15,19 @@ class InvalidMeasurementError(PowerPulseError):
     def __init__(self, errors: list[str]):
         self.errors = list(errors)
         super().__init__("; ".join(self.errors))
+
+
+class WarrantyError(PowerPulseError):
+    """Base error for battery warranty issues."""
+
+
+class WarrantyValidationError(WarrantyError):
+    """Raised when warranty registration inputs are invalid."""
+
+
+class WarrantyExpiredError(WarrantyError):
+    """Raised when an ML assessment is attempted on an expired battery warranty."""
+
+
+class WarrantyNotRegisteredError(WarrantyError):
+    """Raised when an ML assessment is attempted on an unregistered battery."""

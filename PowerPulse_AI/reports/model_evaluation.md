@@ -1,7 +1,7 @@
 # Lithium-ion model evaluation
 
 Model version: 1.0.0
-Trained at (UTC): 2026-11-04T16:49:36+00:00
+Trained at (UTC): 2026-11-13T03:32:43+00:00
 
 Selection used GroupKFold on the training batteries only. The test batteries were scored after the algorithms were fixed.
 
@@ -53,59 +53,59 @@ Poor is the largest class, so macro F1 is the selection metric.
 
 | Algorithm | Accuracy | Macro precision | Macro recall | Macro F1 |
 | --- | ---: | ---: | ---: | ---: |
-| logistic_regression | 0.771 | 0.784 | 0.738 | 0.721 |
-| random_forest | 0.826 | 0.834 | 0.824 | 0.801 |
-| extra_trees | 0.835 | 0.835 | 0.827 | 0.813 |
-| gradient_boosting | 0.777 | 0.797 | 0.792 | 0.764 |
-| xgboost | 0.834 | 0.849 | 0.846 | 0.825 |
+| logistic_regression | 0.751 | 0.702 | 0.697 | 0.650 |
+| random_forest | 0.841 | 0.782 | 0.716 | 0.701 |
+| extra_trees | 0.840 | 0.740 | 0.718 | 0.695 |
+| gradient_boosting | 0.818 | 0.716 | 0.723 | 0.705 |
+| xgboost | 0.823 | 0.744 | 0.757 | 0.731 |
 
 Selected classifier: `xgboost`.
 
 ## Classification test batteries (scored once)
 
-- Accuracy: 0.917
-- Macro precision: 0.906
-- Macro recall: 0.928
-- Macro F1: 0.916
-- Weighted F1: 0.917
+- Accuracy: 0.862
+- Macro precision: 0.795
+- Macro recall: 0.724
+- Macro F1: 0.753
+- Weighted F1: 0.854
 
 Confusion matrix rows and columns are Good, Fair, Poor:
 
 ```
-[[103, 3, 0], [17, 229, 14], [0, 19, 254]]
+[[89, 6, 11], [1, 30, 48], [0, 22, 432]]
 ```
 
 ```
 {
   "Good": {
-    "precision": 0.8583333333333333,
-    "recall": 0.9716981132075472,
-    "f1-score": 0.911504424778761,
+    "precision": 0.9888888888888889,
+    "recall": 0.839622641509434,
+    "f1-score": 0.9081632653061225,
     "support": 106.0
   },
   "Fair": {
-    "precision": 0.9123505976095617,
-    "recall": 0.8807692307692307,
-    "f1-score": 0.8962818003913894,
-    "support": 260.0
+    "precision": 0.5172413793103449,
+    "recall": 0.379746835443038,
+    "f1-score": 0.43795620437956206,
+    "support": 79.0
   },
   "Poor": {
-    "precision": 0.9477611940298507,
-    "recall": 0.9304029304029304,
-    "f1-score": 0.9390018484288355,
-    "support": 273.0
+    "precision": 0.879837067209776,
+    "recall": 0.9515418502202643,
+    "f1-score": 0.9142857142857143,
+    "support": 454.0
   },
-  "accuracy": 0.917057902973396,
+  "accuracy": 0.8622848200312989,
   "macro avg": {
-    "precision": 0.9061483749909153,
-    "recall": 0.9276234247932361,
-    "f1-score": 0.9155960245329954,
+    "precision": 0.7953224451363367,
+    "recall": 0.7236371090575787,
+    "f1-score": 0.7534683946571329,
     "support": 639.0
   },
   "weighted avg": {
-    "precision": 0.9185184580312498,
-    "recall": 0.917057902973396,
-    "f1-score": 0.9170582812979374,
+    "precision": 0.8530990918638148,
+    "recall": 0.8622848200312989,
+    "f1-score": 0.8543811589266802,
     "support": 639.0
   }
 }

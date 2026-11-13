@@ -67,13 +67,13 @@ def test_rul_estimation_logic():
 
     # Historical degradation: cycle 1 -> 98%, cycle 50 -> 88%
     # (slope = -10/49 = -0.20408% per cycle)
-    # Remaining cycles to 70% threshold: (70 - 88) / (-0.20408) = 88.2 -> 88 cycles
+    # Remaining cycles to 80% threshold: (80 - 88) / (-0.20408) = 39.2 -> 39 cycles
     history = [
         {"inputs": {"discharge_cycle": 1}, "predicted_soh": 98.0},
         {"inputs": {"discharge_cycle": 50}, "predicted_soh": 88.0},
     ]
     res = estimate_rul(history)
     assert res["available"]
-    assert res["remaining_cycles"] == 88
-    assert res["projected_eol_cycle"] == 138
+    assert res["remaining_cycles"] == 39
+    assert res["projected_eol_cycle"] == 89
     assert pytest.approx(res["degradation_rate_per_cycle"], 0.01) == 0.204

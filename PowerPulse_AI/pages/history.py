@@ -12,6 +12,7 @@ import plotly.express as px
 import streamlit as st
 
 from database.db import list_assessments
+from ml.config import EOL_THRESHOLD
 from ml.predict import estimate_rul
 from ui.common import current_user, hero, prepare_page
 
@@ -77,20 +78,28 @@ if len(battery_rows) >= 2:
         markers=True,
         title=f"Degradation Trajectory for {selected_battery}",
     )
-    fig.add_hline(y=70.0, line_dash="dash", line_color="red", annotation_text="EoL Threshold (70% SoH)")
+    fig.add_hline(
+        y=EOL_THRESHOLD,
+        line_dash="dash",
+        line_color="red",
+        annotation_text=f"Defined End-of-Life Threshold: {int(EOL_THRESHOLD)}% SoH",
+    )
     fig.add_hline(y=85.0, line_dash="dash", line_color="orange", annotation_text="Fair Threshold (85% SoH)")
     st.plotly_chart(fig, use_container_width=True)
 
     # Calculate RUL
-    rul_analysis = estimate_rul(battery_rows)
+    rul_analysis = estimate_rul(battery_rows, eol_threshold=EOL_THRESHOLD)
+    eol_val = int(rul_analysis.get("eol_threshold_soh", EOL_THRESHOLD))
     if rul_analysis.get("available"):
         st.markdown(
             f"<div class='pp-note'>"
             f"<strong>Remaining Useful Life (RUL) Analysis:</strong><br>"
             f"Based on {rul_analysis['data_points']} recorded data points, the degradation rate is "
             f"<strong>{rul_analysis['degradation_rate_per_cycle']:.3f}% SoH per cycle</strong>.<br>"
-            f"Estimated remaining cycles before reaching 70% End-of-Life: "
-            f"<strong>~{rul_analysis['remaining_cycles']} cycles</strong> (Projected Cycle {rul_analysis['projected_eol_cycle']})."
+            f"Estimated remaining cycles before reaching {eol_val}% End-of-Life: "
+            f"<strong>~{rul_analysis['remaining_cycles']} cycles</strong> (Projected Cycle {rul_analysis['projected_eol_cycle']}).<br>"
+            f"<small><em>{rul_analysis.get('disclaimer', 'RUL is an estimate based on the observed degradation trend, not a guaranteed battery lifetime.')}</em></small><br>"
+            f"<span style='font-size: 0.85rem; color: #7B112D; font-weight: 600;'>Defined End-of-Life Threshold: {eol_val}% SoH</span>"
             f"</div>",
             unsafe_allow_html=True,
         )

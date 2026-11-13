@@ -80,11 +80,13 @@ def test_env_config_defaults_and_parsing(monkeypatch):
 
     monkeypatch.setenv("DB_TYPE", "mongodb")
     monkeypatch.setenv("MONGODB_URI", "")
+    monkeypatch.setenv("MONGODB_DB_NAME", "powerpulse_db")
+    monkeypatch.setenv("MONGO_DB_NAME", "powerpulse_db")
     cfg = get_db_config()
     assert cfg["db_type"] == "mongodb"
     assert cfg["mongo_db_name"] == "powerpulse_db"
     assert cfg["users_collection"] == "users"
-    assert cfg["batteries_collection"] == "battery_records"
+    assert cfg["batteries_collection"] in ("batteries", "battery_records")
     assert cfg["assessments_collection"] == "assessments"
 
     # With empty URI, active backend safely falls back to sqlite

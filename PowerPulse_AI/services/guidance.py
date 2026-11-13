@@ -1,17 +1,19 @@
 """Rule-of-thumb maintenance text. This is not a certified diagnosis."""
 
+from ml.config import EOL_THRESHOLD
+
 
 def maintenance_guidance(condition: str, soh: float) -> list[str]:
     notes = [
         "These notes follow the predicted laboratory SoH band. They are not a warranty decision, a roadworthiness result, or a substitute for a capacity test."
     ]
-    if condition == "Poor" or soh <= 70:
+    if condition == "Poor" or soh <= EOL_THRESHOLD:
         notes.append(
-            "The estimate is in the Poor band used by this project (at or below 70% of the 2.0 Ah reference). Plan a service inspection and do not treat the vehicle range as reliable until capacity is measured."
+            f"The estimate is in the Poor band used by this project (at or below {int(EOL_THRESHOLD)}% of the 2.0 Ah reference). Plan a service inspection and do not treat the vehicle range as reliable until capacity is measured."
         )
     elif condition == "Fair" or soh <= 85:
         notes.append(
-            "The estimate is in the Fair band (above 70% and at or below 85%). Shorten the inspection interval and avoid repeated deep discharge while the result is confirmed with a proper capacity measurement."
+            f"The estimate is in the Fair band (above {int(EOL_THRESHOLD)}% and at or below 85%). Shorten the inspection interval and avoid repeated deep discharge while the result is confirmed with a proper capacity measurement."
         )
     else:
         notes.append(

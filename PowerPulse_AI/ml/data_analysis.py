@@ -33,9 +33,9 @@ def soh_from_capacity(capacity: pd.Series) -> pd.Series:
 def analyse(frame: pd.DataFrame) -> dict:
     soh_gap = (soh_from_capacity(frame["capacity_ah"]) - frame["soh_percent"]).abs()
     expected_condition = np.where(
-        frame["soh_percent"] <= 70.0,
+        frame["soh_percent"] <= CONDITION_RULES["poor_max_inclusive"],
         "Poor",
-        np.where(frame["soh_percent"] <= 85.0, "Fair", "Good"),
+        np.where(frame["soh_percent"] <= CONDITION_RULES["fair_max_inclusive"], "Fair", "Good"),
     )
     per_battery = (
         frame.groupby("battery_id")
@@ -187,7 +187,7 @@ def render_markdown(path: Path, sha256: str, findings: dict) -> str:
             "for every record.",
             "",
             f"Condition labels match the stated bands "
-            f"(Poor ≤ 70, Fair ≤ 85, Good > 85). Mismatches: {findings['condition_mismatches']}.",
+            f"(Poor ≤ {CONDITION_RULES['poor_max_inclusive']:.0f}, Fair ≤ {CONDITION_RULES['fair_max_inclusive']:.0f}, Good > {CONDITION_RULES['good_above']:.0f}). Mismatches: {findings['condition_mismatches']}.",
             "",
             "| Condition | Records | Share |",
             "| --- | ---: | ---: |",

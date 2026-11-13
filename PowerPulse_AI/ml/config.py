@@ -104,8 +104,11 @@ SIMPLICITY_RANK = {
     "xgboost": 4,
 }
 
+# Centralized End-of-Life (EOL) threshold for battery health (80% SoH benchmark)
+EOL_THRESHOLD = 80.0
+
 CONDITION_RULES = {
-    "poor_max_inclusive": 70.0,
+    "poor_max_inclusive": EOL_THRESHOLD,
     "fair_max_inclusive": 85.0,
     "good_above": 85.0,
 }

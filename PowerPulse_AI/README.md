@@ -1,8 +1,9 @@
 # PowerPulse: Lithium-Ion Battery Health Assessment & Predictive Maintenance Platform
 
-**PowerPulse** is a machine-learning-based battery intelligence platform focused exclusively on **Lithium-Ion Battery Health Assessment, Degradation Tracking, and Predictive Maintenance**.
+**PowerPulse** is an enterprise-grade machine-learning battery intelligence platform built for **Lithium-Ion Battery Health Assessment, Warranty Validation Policy Enforcement, Degradation Tracking, and Predictive Maintenance**.
 
-The system analyses measurable battery operating parameters to:
+The system enables service centres, engineers, and fleet operators to:
+- Enforce **Battery Warranty Validation Policies** before executing ML assessments.
 - Estimate State of Health (SoH %).
 - Classify battery condition (`Good`, `Fair`, `Poor`).
 - Explain predictions with **SHAP (Shapley Additive exPlanations)** local and global feature attribution.
@@ -10,6 +11,7 @@ The system analyses measurable battery operating parameters to:
 - Analyse longitudinal capacity fade trajectories.
 - Provide early warnings before critical failure.
 - Estimate Remaining Useful Life (RUL) when multi-cycle historical data is available.
+- Manage multi-tenant Service Centre accounts with protected access and session isolation.
 - Generate downloadable PDF and CSV battery health assessment reports.
 
 > **Dataset & Operating Domain:**
@@ -20,12 +22,12 @@ The system analyses measurable battery operating parameters to:
 
 ## Technology Stack
 
-- **Application & UI**: Python, Streamlit (modular multi-page structure)
+- **Application & UI**: Python, Streamlit (modular multi-page structure with maroon, pink, and white theme)
 - **Data Processing & ML**: Pandas, NumPy, Scikit-learn, XGBoost, Joblib
 - **Model Interpretability**: SHAP (TreeExplainer, Shapley Additive attributions)
 - **Visualization**: Plotly Interactive Visualizations, Streamlit Charts
 - **Database & Security**: SQLite and MongoDB (configurable via `.env`) with PBKDF2-HMAC-SHA256 password hashing
-- **Testing**: Pytest automated test suite
+- **Testing**: Pytest automated test suite (61 unit, integration, lifecycle, warranty, EOL, and UI tests)
 
 ---
 
@@ -41,26 +43,33 @@ minorProject/
 ├── powerpulse_clean.csv        # Cleaned NASA lithium-ion battery dataset
 │
 └── PowerPulse_AI/              # Core application package
-    ├── app.py                  # Application home & project overview
+    ├── app.py                  # Application home & Service Centre auth portal
     ├── pages/
-    │   ├── dashboard.py        # Overview statistics, condition distribution, degradation trends, alerts, global SHAP
-    │   ├── battery_assessment.py # Lithium-ion health estimation, anomaly detection, RUL & local SHAP waterfall
+    │   ├── dashboard.py        # Warranty fleet tracking, condition distribution, degradation trends, alerts, global SHAP
+    │   ├── battery_assessment.py # Warranty verification gate, SoH estimation, anomaly detection, RUL & local SHAP
     │   ├── history.py          # Longitudinal degradation curves & assessment history
     │   └── reports.py          # Downloadable CSV & PDF assessment reports
+    ├── utils/
+    │   └── warranty.py         # Warranty calculation, expiry evaluation, and policy enforcement
+    ├── services/
+    │   ├── guidance.py         # Maintenance advisory text
+    │   ├── lifecycle.py        # Smart lifecycle recommendations
+    │   ├── notifications.py    # In-app notification engine
+    │   ├── reporting.py        # CSV/PDF report generators
+    │   └── validation.py       # Telemetry range & physical checks
     ├── ml/
     │   ├── config.py           # Constants, column roles, and ML hyperparameters
     │   ├── dataset.py          # Dataset loading & integrity verification
-    │   ├── data_analysis.py    # Phase 1 exploratory data analysis & figures
     │   ├── splitting.py        # Battery-wise stratified splitting (no row-level leakage)
     │   ├── feature_engineering.py # Safe feature transformations without target leakage
     │   ├── preprocessing.py    # Training ranges & column schemas
     │   ├── train_regression.py # SoH regressors (RF, ExtraTrees, GB, XGB, Linear)
     │   ├── train_classification.py # Condition classifiers (RF, ExtraTrees, GB, XGB, LogReg)
     │   ├── evaluate.py         # MAE, RMSE, R2, F1, Confusion Matrix, Classification Report
-    │   ├── predict.py          # Validation, inference, and RUL estimation logic
+    │   ├── predict.py          # Validation, warranty check, inference, and RUL estimation logic
     │   ├── explainability.py   # Local & global SHAP attribution, waterfalls & importance
     │   ├── model_loader.py     # Joblib deserializer and model artifact manager
-    │   └── errors.py           # Domain exception classes
+    │   └── errors.py           # Domain exception classes (including Warranty errors)
     ├── models/
     │   ├── regression_model.pkl    # Serialized Random Forest SoH regressor
     │   ├── classification_model.pkl# Serialized XGBoost Condition classifier
@@ -69,74 +78,142 @@ minorProject/
     │   └── evaluation_metrics.json # Full CV, test, and LOBO metrics
     ├── database/
     │   ├── schema.py           # SQLite schema definition
-    │   └── db.py               # Data access layer for users, batteries, assessments (SQLite + MongoDB)
-    ├── reports/
-    │   ├── dataset_analysis.md # Phase 1 dataset inspection findings
-    │   ├── model_evaluation.md # Phase 4 model evaluation & benchmark results
-    │   ├── battery_summary.csv # Per-battery summary statistics
-    │   └── figures/            # Plotly HTML figures
-    ├── docs/
-    │   └── retraining.md       # Model retraining, evaluation, and promotion workflow
-    ├── tests/                  # Automated pytest suite
+    │   └── db.py               # Data access layer (SQLite + MongoDB) with account isolation
+    ├── tests/                  # Automated pytest suite (61 tests)
     └── requirements.txt        # Application dependencies
 ```
+
+---
+
+## Battery Lifecycle Monitoring & Smart Alerts
+
+PowerPulse includes a dedicated **Battery Lifecycle Monitoring** engine designed to track battery fleet operational lifecycles, dynamically compute battery ageing, generate proactive warranty/ageing alerts, and maintain full separation from NASA ML degradation models.
+
+### 1. Dynamic Battery Age Calculation
+- **Non-Static Storage**: Battery age is never stored as a fixed value in MongoDB. Storing static age causes database staleness as calendar time elapses.
+- **Dynamic Wall-Clock Arithmetic**: Calculated on-the-fly comparing the battery `purchase_date` against current system date:
+  $$\text{Age (months)} = (\text{current\_year} - \text{purchase\_year}) \times 12 + (\text{current\_month} - \text{purchase\_month})$$
+  Adjusted accurately when current day of the month is prior to the purchase day, including full support for leap years and month ends.
+- **Human-Readable Formats**: Formatted dynamically as `X years Y months` (e.g. `2 years 3 months`) alongside total months.
+
+### 2. Multi-Tier Warranty Alerts
+The system continuously evaluates battery warranty expiry dates against dynamic milestone thresholds:
+- **90 Days Before Expiry**: `"Your battery warranty expires in 3 months."` (Status: `Expires in 3 Months`, Yellow badge)
+- **30 Days Before Expiry**: `"Your battery warranty expires in 30 days."` (Status: `Expiring Soon`, Orange badge)
+- **7 Days Before Expiry**: `"Your battery warranty expires in 7 days."` (Status: `Critical Expiry`, Red badge)
+- **Post-Expiry**: `"Your battery warranty has expired."` (Status: `Warranty Expired`, Red badge)
+
+### 3. Configurable Battery Ageing Alerts
+Proactive operational alerts based on physical service time (separate from ML health classification):
+- **Below 24 Months**: `Normal` (No alert required).
+- **24–36 Months**: `"This battery has been in service for 2 years. Consider periodic health monitoring."` (`Ageing Information`)
+- **36–48 Months**: `"Your battery is approaching 3 years of usage. A health assessment is recommended."` (`Ageing Warning`)
+- **Above 48 Months**: `"This battery has been in service for more than 4 years. Consider a detailed battery inspection."` (`Advanced Ageing Alert`)
+
+> **Note on ML Model Non-Interference:**
+> Battery age and purchase dates are operational business metrics. They are **never** injected into the Random Forest SoH regressor or XGBoost condition classifier feature vectors. Ageing alerts serve as maintenance reminders and do not label a battery as degraded without ML sensor verification.
+
+### 4. Alert Tracking & MongoDB Persistence
+- Alert records are persisted in MongoDB `battery_alerts` (or SQLite fallback) with fields:
+  `battery_id`, `user_id`, `alert_type`, `severity`, `title`, `message`, `alert_status` (`Unread` / `Acknowledged`), and timestamps.
+- **Idempotent De-duplication**: Unique compound indexes ensure the dashboard re-evaluation never inserts duplicate alerts on page reloads.
+- **Service Centre Acknowledgement**: Service center personnel can acknowledge active alerts directly within the Dashboard UI, immediately updating alert state in MongoDB.
+
+### 5. Streamlit Dashboard Integration
+A dedicated **Battery Lifecycle Monitoring** command view featuring:
+- **5 KPI Metrics**: Total Registered Batteries, Active Warranties, Expiring Within 90 Days, Expired Warranties, and Ageing Alerts Needed.
+- **Fleet Table**: Standardized columns (`Battery ID`, `Manufacturer`, `Purchase Date`, `Battery Age`, `Warranty Expiry`, `Warranty Status`, `Alert Status`) with color badges (Green, Yellow, Orange, Red).
+- **Interactive Lifecycle Alerts Table**: Shows active notifications with direct **Acknowledge** button triggers.
+
+---
+
+## Battery Warranty Management & Policy Enforcement
+
+### 1. Warranty Policy Gate
+Before performing any machine learning-based health assessment, the system validates the battery's warranty status:
+- **`ACTIVE` Warranty**:
+  - Current date is on or before calculated expiry date ($\text{Expiry Date} = \text{Purchase Date} + \text{Warranty Duration}$).
+  - Displays green verification badge and allows user to proceed to ML health assessment.
+- **`EXPIRED` Warranty**:
+  - Current date is after the calculated expiry date.
+  - Displays a clear policy block message:
+    `"WARRANTY EXPIRED – Battery health assessment is unavailable under the current warranty policy."`
+  - Blocks Random Forest prediction, XGBoost classification, SHAP attribution, and RUL prognostics.
+  - Prevents creating or saving unauthenticated assessment records.
+  - Backend enforcement: Enforced directly in `assess()` to prevent programmatic bypass.
+
+### 2. Multi-Tenant Service Centre Account Isolation
+- Batteries and assessments are bound to the authenticated service centre user (`user_id`).
+- Unauthorized accounts cannot access, view, or assess another service centre's battery records.
+
+---
+
+## Authentication & Navigation UI
+
+1. **Clean Navigation**: Removed persistent Login/Signup radio inputs from the left sidebar.
+2. **Dedicated Auth Portal**: Unauthenticated sessions are greeted by a branded Maroon (`#7B112D`), Pink (`#FCE4EC`), and White portal with dedicated Log In and Sign Up tabs.
+3. **Session Gating**: Protected pages (`battery_assessment`, `dashboard`, `history`, `reports`) are strictly inaccessible to unauthenticated sessions.
+4. **Header Profile & Logout**: Authenticated users see their service centre username in the sidebar with a clean Logout button that immediately terminates the session.
+
+---
+
+## End-of-Life (EOL) 80% Threshold & RUL Prognostics
+
+### 1. Centralized 80% SoH EOL Reference
+PowerPulse centralizes the End-of-Life State of Health criterion at:
+$$\text{EOL\_THRESHOLD} = 80.0\%$$
+- **EV Industry Standard Benchmark**: In automotive and industrial battery engineering, 80% State of Health is the globally accepted standard definition for an electric vehicle (EV) battery's "end of first life". At this threshold, power delivery, internal resistance, and vehicle driving range begin to decline rapidly, prompting cell retirement or second-life stationary energy storage reuse.
+- **Modelling Criterion vs Universal Rule**: This threshold is an engineering modelling reference for predictive maintenance and cycle life projections. It is **not** a universal mandatory scrappage rule; actual retirement or decommissioning criteria depend on vehicle OEM specifications, safety tolerances, and application operating envelopes.
+
+### 2. Battery Condition Classification Ranges
+Condition boundaries are consistently defined across models, datasets, UI, and reports:
+- **`GOOD`**: $\text{SoH} > 85.0\%$ (Normal operational health; continue routine service intervals).
+- **`FAIR`**: $80.0\% < \text{SoH} \le 85.0\%$ (Moderate degradation; 85% boundary belongs to Fair; shorten inspection intervals).
+- **`POOR`**: $\text{SoH} \le 80.0\%$ (Critical degradation; 80% boundary belongs to Poor; prompt inspection or cell replacement).
+
+### 3. Remaining Useful Life (RUL) Prognostics
+When $\ge 2$ distinct discharge cycles are recorded for a battery identifier, the system evaluates the linear degradation trajectory:
+$$\text{SoH} = m \cdot \text{cycle} + b$$
+Where:
+- $m$: degradation rate (loss in SoH percentage points per discharge cycle)
+- $b$: initial capacity intercept
+- $\text{EOL Cycle} = \frac{80.0 - b}{m}$
+- $\text{RUL} = \text{EOL Cycle} - \text{Current Cycle}$
+
+**Operational Edge Case Handling**:
+- **Current SoH $\le 80\%$**: Immediately alerts `"Battery has reached its defined End-of-Life threshold."` with 0 remaining cycles.
+- **Slope $\ge 0$ (Zero or positive slope)**: Suppresses misleading projections and notes `"Observed SoH has not demonstrated a downward degradation trend across the recorded cycles."`
+- **Negative calculated RUL**: Clamped to 0 to prevent displaying negative remaining cycle counts.
+- **Insufficient historical data**: Clearly displays that at least 2 distinct cycles are required.
+- **Transparent Disclaimer**: Accompanying every projection: *"RUL is an estimate based on the observed degradation trend, not a guaranteed battery lifetime."*
 
 ---
 
 ## Installation & Execution
 
 ### 1. Environment Setup
-From the repository root (`minorProject`):
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 2. Database Configuration (SQLite or MongoDB)
-
-PowerPulse supports dual database storage engines configured via environment variables in `.env`:
-- **SQLite (Default / Fallback)**: Zero-configuration local database (`database/powerpulse.db`).
-- **MongoDB**: Cloud (MongoDB Atlas) or local MongoDB instance for scalable multi-user assessment storage.
-
-#### Switching to MongoDB:
-1. Open `.env` (or copy `.env.example` to `.env`):
-   ```bash
-   cp .env.example .env
-   ```
-2. Configure your MongoDB connection string in `.env`:
-   ```env
-   # Database Engine Selection ('mongodb' or 'sqlite')
-   DB_TYPE=mongodb
-
-   # MongoDB Connection URI (paste your credentials / cluster URI)
-   # Example: mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
-   MONGODB_URI=your_mongodb_connection_uri_here
-
-   # Database and collection names
-   MONGODB_DB_NAME=powerpulse_db
-   MONGODB_USERS_COLLECTION=users
-   MONGODB_BATTERIES_COLLECTION=battery_records
-   MONGODB_ASSESSMENTS_COLLECTION=assessments
-   MONGODB_TIMEOUT_MS=5000
-   ```
-3. **Safety Fallback**: If `MONGODB_URI` is left blank, `pymongo` is missing, or the cluster is temporarily unreachable, PowerPulse automatically falls back to local SQLite without interrupting the application.
+Configure database engine in `.env`:
+```env
+DB_TYPE=mongodb
+MONGODB_URI=your_mongodb_connection_uri_here
+MONGODB_DB_NAME=powerpulse_db
+```
+*(If MongoDB is not configured, PowerPulse automatically falls back to local SQLite without crashing.)*
 
 ### 3. Run the Streamlit Application
 ```bash
 cd PowerPulse_AI
 streamlit run app.py
 ```
-Open `http://localhost:8501` in your browser. Pre-trained models and SHAP explainers load instantly without retraining.
 
 ### 4. Run the Automated Tests
 ```bash
 cd PowerPulse_AI
 pytest
 ```
-All 23 unit, integration, explainability, and database tests will execute.
-
-### 5. Optional: Retraining
-```bash
-cd PowerPulse_AI
-python -m ml.train_models
-```
-Performs battery-wise splitting, cross-validation, holdout evaluation, and serializes fresh model artifacts into `models/`.
+All **61** automated unit, integration, explainability, warranty policy, lifecycle monitoring, EOL threshold, and auth UI tests will execute.

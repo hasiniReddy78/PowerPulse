@@ -9,7 +9,7 @@
   "reference_capacity_ah": 2.0,
   "reference_capacity_note": "SoH labels in the cleaned file are min(100, capacity_ah / 2.0 * 100). The 2.0 Ah value is a preprocessing assumption.",
   "random_seed": 42,
-  "trained_at_utc": "2026-11-04T16:49:36+00:00",
+  "trained_at_utc": "2026-11-13T03:32:43+00:00",
   "split": {
     "strategy": "battery-wise holdout of 8 of 32 batteries, stratified by temperature profile. B0042, B0043 and B0044 are one profile because each contains both 22 \u00b0C and 4 \u00b0C discharges.",
     "train_batteries": [
@@ -507,11 +507,11 @@
     "algorithm": "xgboost",
     "selection_metric": "highest GroupKFold macro F1 on training batteries",
     "test_metrics": {
-      "accuracy": 0.917057902973396,
-      "precision_macro": 0.9061483749909153,
-      "recall_macro": 0.9276234247932361,
-      "f1_macro": 0.9155960245329954,
-      "f1_weighted": 0.9170582812979374,
+      "accuracy": 0.8622848200312989,
+      "precision_macro": 0.7953224451363367,
+      "recall_macro": 0.7236371090575787,
+      "f1_macro": 0.7534683946571329,
+      "f1_weighted": 0.8543811589266802,
       "confusion_matrix": {
         "labels": [
           "Good",
@@ -520,52 +520,52 @@
         ],
         "values": [
           [
-            103,
-            3,
-            0
+            89,
+            6,
+            11
           ],
           [
-            17,
-            229,
-            14
+            1,
+            30,
+            48
           ],
           [
             0,
-            19,
-            254
+            22,
+            432
           ]
         ]
       },
       "classification_report": {
         "Good": {
-          "precision": 0.8583333333333333,
-          "recall": 0.9716981132075472,
-          "f1-score": 0.911504424778761,
+          "precision": 0.9888888888888889,
+          "recall": 0.839622641509434,
+          "f1-score": 0.9081632653061225,
           "support": 106.0
         },
         "Fair": {
-          "precision": 0.9123505976095617,
-          "recall": 0.8807692307692307,
-          "f1-score": 0.8962818003913894,
-          "support": 260.0
+          "precision": 0.5172413793103449,
+          "recall": 0.379746835443038,
+          "f1-score": 0.43795620437956206,
+          "support": 79.0
         },
         "Poor": {
-          "precision": 0.9477611940298507,
-          "recall": 0.9304029304029304,
-          "f1-score": 0.9390018484288355,
-          "support": 273.0
+          "precision": 0.879837067209776,
+          "recall": 0.9515418502202643,
+          "f1-score": 0.9142857142857143,
+          "support": 454.0
         },
-        "accuracy": 0.917057902973396,
+        "accuracy": 0.8622848200312989,
         "macro avg": {
-          "precision": 0.9061483749909153,
-          "recall": 0.9276234247932361,
-          "f1-score": 0.9155960245329954,
+          "precision": 0.7953224451363367,
+          "recall": 0.7236371090575787,
+          "f1-score": 0.7534683946571329,
           "support": 639.0
         },
         "weighted avg": {
-          "precision": 0.9185184580312498,
-          "recall": 0.917057902973396,
-          "f1-score": 0.9170582812979374,
+          "precision": 0.8530990918638148,
+          "recall": 0.8622848200312989,
+          "f1-score": 0.8543811589266802,
           "support": 639.0
         }
       },
@@ -576,55 +576,55 @@
       "values": [
         {
           "feature": "ambient_temperature",
-          "value": 0.3717138469219208
-        },
-        {
-          "feature": "voltage_mean",
-          "value": 0.14019538462162018
-        },
-        {
-          "feature": "duration_seconds",
-          "value": 0.0881427675485611
-        },
-        {
-          "feature": "voltage_std",
-          "value": 0.07444722205400467
+          "value": 0.3604276478290558
         },
         {
           "feature": "current_mean",
-          "value": 0.0717143639922142
+          "value": 0.12306209653615952
         },
         {
-          "feature": "temperature_mean",
-          "value": 0.06106319651007652
+          "feature": "voltage_std",
+          "value": 0.10509520769119263
         },
         {
-          "feature": "temperature_max",
-          "value": 0.05870744585990906
+          "feature": "duration_seconds",
+          "value": 0.09692946821451187
+        },
+        {
+          "feature": "voltage_mean",
+          "value": 0.08570518344640732
         },
         {
           "feature": "current_std",
-          "value": 0.03757504001259804
-        },
-        {
-          "feature": "voltage_range",
-          "value": 0.02456354722380638
-        },
-        {
-          "feature": "temperature_rise",
-          "value": 0.023086030036211014
+          "value": 0.04345671087503433
         },
         {
           "feature": "voltage_min",
-          "value": 0.022085553035140038
+          "value": 0.04065047949552536
+        },
+        {
+          "feature": "temperature_max",
+          "value": 0.03265385329723358
+        },
+        {
+          "feature": "voltage_range",
+          "value": 0.03216909244656563
         },
         {
           "feature": "temperature_peak_rise",
-          "value": 0.01828397996723652
+          "value": 0.026619402691721916
+        },
+        {
+          "feature": "temperature_mean",
+          "value": 0.02281063050031662
         },
         {
           "feature": "voltage_max",
-          "value": 0.008421649225056171
+          "value": 0.015984652563929558
+        },
+        {
+          "feature": "temperature_rise",
+          "value": 0.014435583725571632
         }
       ]
     }
@@ -635,7 +635,7 @@
     "Poor"
   ],
   "condition_thresholds": {
-    "poor_at_or_below": 70.0,
+    "poor_at_or_below": 80.0,
     "fair_at_or_below": 85.0,
     "good_above": 85.0
   },

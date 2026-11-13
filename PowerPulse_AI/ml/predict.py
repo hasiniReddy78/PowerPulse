@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ml.config import CONDITION_RULES
+from ml.config import CONDITION_RULES, EOL_THRESHOLD
 from ml.errors import InvalidMeasurementError
 from ml.model_loader import Artifacts, load_artifacts
 from services.guidance import maintenance_guidance
@@ -22,15 +22,19 @@ def soh_band(soh: float) -> str:
     return "Good"
 
 
+EOL_DISCLAIMER = "RUL is an estimate based on the observed degradation trend, not a guaranteed battery lifetime."
+
+
 def estimate_rul(
     history_records: list[dict],
     current_soh: float | None = None,
     current_cycle: int | float | None = None,
-    eol_threshold: float = 70.0,
+    eol_threshold: float = EOL_THRESHOLD,
 ) -> dict:
     """Estimate Remaining Useful Life (RUL) in discharge cycles based on historical degradation.
 
     Requires at least 2 distinct cycles with SoH estimates.
+    Estimates the number of cycles remaining until the battery reaches the defined EOL threshold.
     """
     points: dict[float, float] = {}
     for r in history_records:
@@ -54,38 +58,62 @@ def estimate_rul(
             "available": False,
             "reason": "At least two distinct cycles with SoH estimates are needed to compute degradation rate and project RUL.",
             "data_points": len(points),
+            "eol_threshold_soh": float(eol_threshold),
+            "disclaimer": EOL_DISCLAIMER,
         }
 
     sorted_cycles = np.array(sorted(points.keys()), dtype=float)
     sorted_sohs = np.array([points[c] for c in sorted_cycles], dtype=float)
+    last_cycle = float(sorted_cycles[-1])
+    last_soh = float(sorted_sohs[-1])
+
+    # Case 1: Current SoH is already at or below the EOL threshold
+    if last_soh <= eol_threshold:
+        return {
+            "available": False,
+            "reached_eol": True,
+            "remaining_cycles": 0,
+            "reason": "Battery has reached its defined End-of-Life threshold.",
+            "data_points": len(points),
+            "current_cycle": last_cycle,
+            "current_soh": last_soh,
+            "eol_threshold_soh": float(eol_threshold),
+            "disclaimer": EOL_DISCLAIMER,
+        }
 
     # Linear trend fit: SoH = slope * cycle + intercept
     slope, intercept = np.polyfit(sorted_cycles, sorted_sohs, 1)
 
-    # For degradation, slope should be negative (loss of SoH over cycles)
-    if slope >= 0:
+    # Case 2: Degradation slope is zero or positive (no downward trend, numerical precision tolerance)
+    if slope >= 0 or np.isclose(slope, 0.0, atol=1e-7):
         return {
             "available": False,
             "reason": "Observed SoH has not demonstrated a downward degradation trend across the recorded cycles.",
             "data_points": len(points),
             "slope": float(slope),
-            "current_cycle": float(sorted_cycles[-1]),
-            "current_soh": float(sorted_sohs[-1]),
+            "current_cycle": last_cycle,
+            "current_soh": last_soh,
+            "eol_threshold_soh": float(eol_threshold),
+            "disclaimer": EOL_DISCLAIMER,
         }
 
-    # Solve for cycle where SoH = eol_threshold
+    # Solve for cycle where SoH = eol_threshold: target_cycle = (eol_threshold - intercept) / slope
     target_cycle = (eol_threshold - intercept) / slope
-    remaining = max(0, int(round(target_cycle - sorted_cycles[-1])))
+    remaining_raw = target_cycle - last_cycle
+
+    # Case 3: Negative calculated RUL clamped to 0
+    remaining = max(0, int(round(remaining_raw)))
 
     return {
         "available": True,
         "remaining_cycles": remaining,
-        "projected_eol_cycle": int(round(target_cycle)),
+        "projected_eol_cycle": max(int(round(last_cycle)), int(round(target_cycle))),
         "degradation_rate_per_cycle": float(abs(slope)),
         "eol_threshold_soh": float(eol_threshold),
         "data_points": len(points),
-        "current_cycle": float(sorted_cycles[-1]),
-        "current_soh": float(sorted_sohs[-1]),
+        "current_cycle": last_cycle,
+        "current_soh": last_soh,
+        "disclaimer": EOL_DISCLAIMER,
     }
 
 
@@ -110,9 +138,9 @@ def predict_lithium_ion(
         )
 
     # Early warning for severe degradation
-    if soh <= 70.0 or condition == "Poor":
+    if soh <= EOL_THRESHOLD or condition == "Poor":
         warnings.append(
-            "CRITICAL ALERT: Estimated SoH has dropped into or below the 70% threshold. "
+            f"CRITICAL ALERT: Estimated SoH has dropped into or below the {int(EOL_THRESHOLD)}% threshold. "
             "Replacement or detailed cell capacity inspection recommended."
         )
 
@@ -144,6 +172,42 @@ def assess(
     measurements: dict,
     category: str = "lithium_ion",
     model_dir: Path | None = None,
+    battery_id: str | None = None,
+    user_id: int | None = None,
+    warranty_info: dict | None = None,
+    as_of: Any = None,
+    db_path: Path | None = None,
 ) -> dict:
-    """Assess lithium-ion battery health from measurements."""
-    return predict_lithium_ion(measurements, model_dir=model_dir)
+    """Assess lithium-ion battery health from measurements after validating warranty policy.
+
+    If battery_id or warranty_info is provided, validates warranty before ML execution.
+    If warranty is EXPIRED, raises WarrantyExpiredError and executes NO ML models.
+    """
+    from utils.warranty import (
+        WarrantyExpiredError,
+        WarrantyNotRegisteredError,
+        check_warranty_validity,
+    )
+
+    if battery_id is not None or warranty_info is not None:
+        rec = warranty_info
+        if rec is None and battery_id is not None:
+            from database.db import get_battery_warranty
+
+            rec = get_battery_warranty(battery_id, user_id=user_id, as_of=as_of, path=db_path)
+
+        validity = check_warranty_validity(rec, as_of=as_of)
+        if not validity["is_valid"]:
+            if validity["status"] == "EXPIRED":
+                raise WarrantyExpiredError(
+                    "WARRANTY EXPIRED – Battery health assessment is unavailable under the current warranty policy."
+                )
+            elif validity["status"] == "NOT_REGISTERED":
+                raise WarrantyNotRegisteredError(validity["message"])
+            else:
+                raise WarrantyExpiredError(validity["message"])
+
+    result = predict_lithium_ion(measurements, model_dir=model_dir)
+    if battery_id:
+        result["battery_id"] = battery_id
+    return result

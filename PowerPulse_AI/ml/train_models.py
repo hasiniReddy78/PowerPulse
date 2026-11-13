@@ -26,11 +26,13 @@ from ml.config import (
     ALGORITHM_TIE_F1,
     ALGORITHM_TIE_MAE,
     BASE_FEATURES,
+    CONDITION_RULES,
     CYCLE_FEATURE,
     CYCLE_MAE_IMPROVEMENT,
     DATA_CSV,
     ENGINEERED_FEATURES,
     ENGINEERED_MAE_TOLERANCE,
+    EOL_THRESHOLD,
     GROUP_COLUMN,
     LEAKAGE_COLUMNS,
     MODELS_DIR,
@@ -499,7 +501,7 @@ def train(data_path: Path, output_dir: Path, version: str) -> dict:
         },
         "class_labels": ["Good", "Fair", "Poor"],
         "condition_thresholds": {
-            "poor_at_or_below": 70.0,
+            "poor_at_or_below": EOL_THRESHOLD,
             "fair_at_or_below": 85.0,
             "good_above": 85.0,
         },
@@ -546,6 +548,106 @@ def train(data_path: Path, output_dir: Path, version: str) -> dict:
     return metadata
 
 
+def retrain_classifier_only(data_path: Path, output_dir: Path, version: str) -> dict:
+    """Retrain only the condition classifier with updated condition labels, preserving the Random Forest regressor."""
+    print("Loading cleaned dataset...")
+    frame = load_clean_dataset(data_path)
+    train_ids, test_ids = split_batteries(frame)
+    train, test = partition_frame(frame, train_ids, test_ids)
+    print(f"train batteries={len(train_ids)} rows={len(train)}")
+    print(f"test batteries={len(test_ids)} rows={len(test)}")
+
+    metadata_path = output_dir / "model_metadata.json"
+    evaluation_path = output_dir / "evaluation_metrics.json"
+    if not metadata_path.is_file() or not evaluation_path.is_file():
+        raise FileNotFoundError(f"Existing metadata or evaluation not found in {output_dir}")
+
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+
+    feature_columns = metadata["feature_columns"]
+    raw_columns = raw_columns_for(feature_columns)
+    train_raw = train[raw_columns]
+    test_raw = test[raw_columns]
+
+    print("Evaluating classification estimators with GroupKFold CV...")
+    classification_cv = {}
+    for name in classification_estimators():
+        pipeline = build_classifier(name, feature_columns)
+        scored = cross_validate_classifier(
+            pipeline, train_raw, train[TARGET_CLASSIFICATION], train[GROUP_COLUMN]
+        )
+        classification_cv[name] = scored
+        print(f"classification {name}: macro F1 {scored['f1_macro']['mean']:.3f}")
+
+    classification_name = _choose(
+        classification_cv, "f1_macro", higher_is_better=True, tie=ALGORITHM_TIE_F1
+    )
+    print(f"selected classification: {classification_name}")
+
+    classifier = refit_classifier(
+        classification_name, feature_columns, train_raw, train[TARGET_CLASSIFICATION]
+    )
+    classification_test = classification_metrics(
+        test[TARGET_CLASSIFICATION], classifier.predict(test_raw)
+    )
+    print(
+        f"TEST classification macro F1 {classification_test['f1_macro']:.3f} "
+        f"accuracy {classification_test['accuracy']:.3f}"
+    )
+
+    lobo_classification = _leave_one_battery_out(
+        build_classifier(classification_name, feature_columns),
+        train_raw,
+        train[TARGET_CLASSIFICATION],
+        train[GROUP_COLUMN],
+    )
+    lobo_f1 = np.asarray([row["f1_macro"] for row in lobo_classification["batteries"]], dtype=float)
+
+    trained_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+    # Update metadata while strictly preserving regression model and metrics
+    metadata["model_version"] = version
+    metadata["trained_at_utc"] = trained_at
+    metadata["classification"] = {
+        "algorithm": classification_name,
+        "selection_metric": "highest GroupKFold macro F1 on training batteries",
+        "test_metrics": classification_test,
+        "feature_importance": _importance(classifier, feature_columns),
+    }
+    metadata["condition_thresholds"] = {
+        "poor_at_or_below": EOL_THRESHOLD,
+        "fair_at_or_below": 85.0,
+        "good_above": 85.0,
+    }
+
+    # Update evaluation while preserving regression evaluation metrics
+    evaluation["classification_cv"] = classification_cv
+    evaluation["selected_classification"] = classification_name
+    evaluation["classification_test"] = classification_test
+    evaluation["classification_lobo"] = {
+        "f1_macro_mean": float(lobo_f1.mean()),
+        "f1_macro_std": float(lobo_f1.std(ddof=1)),
+        "f1_macro_min": float(lobo_f1.min()),
+        "f1_macro_max": float(lobo_f1.max()),
+        "batteries": lobo_classification["batteries"],
+    }
+
+    # Save only the classification model, metadata, evaluation and report
+    joblib.dump(classifier, output_dir / "classification_model.pkl")
+    metadata_path.write_text(json.dumps(_convert(metadata), indent=2), encoding="utf-8")
+    evaluation_path.write_text(json.dumps(_convert(evaluation), indent=2), encoding="utf-8")
+
+    if output_dir.resolve() == MODELS_DIR.resolve():
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        _write_report(REPORTS_DIR / "model_evaluation.md", metadata, evaluation)
+    else:
+        _write_report(output_dir / "model_evaluation.md", metadata, evaluation)
+
+    print("Classifier retraining complete! Random Forest regressor preserved.")
+    return metadata
+
+
 def promote(candidate_dir: Path, destination: Path = MODELS_DIR) -> None:
     missing = [
         name
@@ -581,10 +683,18 @@ def main() -> None:
     parser.add_argument("--version", default=MODEL_VERSION)
     parser.add_argument("--output", type=Path, default=MODELS_DIR)
     parser.add_argument("--promote", type=Path, default=None, help="Copy a candidate folder into models/.")
+    parser.add_argument(
+        "--classifier-only",
+        action="store_true",
+        help="Retrain only the classifier with updated condition labels, preserving the Random Forest regressor.",
+    )
     args = parser.parse_args()
     if args.promote is not None:
         promote(args.promote, args.output)
         print(f"promoted {args.promote} -> {args.output}")
+        return
+    if args.classifier_only:
+        retrain_classifier_only(args.data, args.output, args.version)
         return
     train(args.data, args.output, args.version)
 

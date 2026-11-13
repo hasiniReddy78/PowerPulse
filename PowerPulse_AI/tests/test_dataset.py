@@ -26,8 +26,8 @@ def test_soh_matches_capacity_rule_and_condition_bands():
     poor = frame.loc[frame["condition"] == "Poor", "soh_percent"]
     fair = frame.loc[frame["condition"] == "Fair", "soh_percent"]
     good = frame.loc[frame["condition"] == "Good", "soh_percent"]
-    assert poor.max() <= 70
-    assert fair.min() > 70 and fair.max() <= 85
+    assert poor.max() <= 80
+    assert fair.min() > 80 and fair.max() <= 85
     assert good.min() > 85
     assert set(frame["condition"]) == {"Good", "Fair", "Poor"}
 
